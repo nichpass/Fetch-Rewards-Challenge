@@ -5,21 +5,13 @@ function User(){
     this.partnerPoints = {};
 }
 
-// if partner not in dictionary, add it with points = 0
-User.prototype.createPartnerIfNeeded = function (newPartner) {
-    if ( !(newPartner in this.partnerPoints) ){
-        this.partnerPoints[newPartner] = 0;
-    }
-}
-
 /*
  * for add requests, updates the partner's balance, setting it to zero if it goes negative
  * (assuming don't need to invalidate add request if balance goes negative, but instead just to set it back to zero)
  */
 User.prototype.updatePartnerPoints = function(partner, pointValue){
-    this.createPartnerIfNeeded(partner);
-    this.partnerPoints[partner] += pointValue;
-
+    addOrSetDict(this.partnerPoints, partner, pointValue);
+    console.log(partner)
     if (this.partnerPoints[partner] < 0){
         this.partnerPoints[partner] = 0;
     }
@@ -93,6 +85,17 @@ User.prototype.deductTransaction = function(deductionAmount){
 
 }
 
+User.prototype.getPartnerPoints = function(){
+    str = "";
+    for (let partner in this.partnerPoints) {
+        // check if the property/key is defined in the object itself, not in parent
+        if (this.partnerPoints.hasOwnProperty(partner)) {  
+            str += partner + " : " + this.partnerPoints[partner] + "\n";    
+        }
+    }
+    return str;
+}
+
 // add value to dict[key] or set dict[key] if key does not exists
 function addOrSetDict(dict, key, value, def=0){
     if(key in dict){
@@ -101,6 +104,9 @@ function addOrSetDict(dict, key, value, def=0){
         dict[key] = value;
     }
 }
+
+
+module.exports = User;
 
 /*
 create dictionary outlining amount deducted from each company
