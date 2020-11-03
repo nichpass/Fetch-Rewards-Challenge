@@ -1,0 +1,9 @@
+{
+	"transactions" : [
+        ["DANNON", "300", "10/31 10AM"],
+        ["UNILEVER", "200", "10/31 11AM"],
+        ["DANNON", "-200", "10/31 3PM"],
+        ["MILLER COORS", "10,000", "11/1 2PM"],
+        ["DANNON", "1000", "11/2 2PM"]
+    ]
+}
