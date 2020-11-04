@@ -11,7 +11,6 @@ function User(){
  */
 User.prototype.updatePartnerPoints = function(partner, pointValue){
     addOrSetDict(this.partnerPoints, partner, pointValue);
-    console.log(partner)
     if (this.partnerPoints[partner] < 0){
         this.partnerPoints[partner] = 0;
     }
@@ -21,8 +20,30 @@ User.prototype.updatePartnerPoints = function(partner, pointValue){
 User.prototype.addTransaction = function(partner, pointValue, time){
     transaction = {partner : partner, points : pointValue, time : time}
     this.transactionHistory.push(transaction);
+    let toSub = -pointValue
     if(pointValue > 0){
         this.activePointsHistory.push(transaction);
+        this.activePointsHistory.sort(pointHistoryCompare)
+    } else {
+        if(this.partnerPoints[partner] < pointValue){
+            return -1;
+        }
+        for(let i=this.activePointsHistory.length-1; i >= 0; i--){
+            listTime = Date.parse(this.activePointsHistory[i].time);
+            newTime = Date.parse(time);
+            if(listTime > newTime && this.activePointsHistory[i].partner === partner){
+                if(this.activePointsHistory[i].points > toSub){
+                    this.activePointsHistory[i].points -= toSub;
+                    break;
+                } else if( this.activePointsHistory[i].points === toSub){
+                    this.activePointsHistory.pop(i);
+                    break;
+                } else {
+                    toSub -= this.activePointsHistory[i].points;
+                    this.activePointsHistory.pop(i);
+                }
+            }
+        }
     }
     this.updatePartnerPoints(partner, pointValue);
     this.updateViewablePoints(pointValue);
@@ -30,7 +51,10 @@ User.prototype.addTransaction = function(partner, pointValue, time){
 
 // sort function for dates in transactions
 function pointHistoryCompare(a, b){
-    return new Date(a) - new Date(b);
+    let ad = Date.parse(a.time);
+    let bd = Date.parse(b.time);
+    t =  ad - bd;
+    return t;
 }
 
 User.prototype.updateViewablePoints = function(points){
@@ -39,6 +63,7 @@ User.prototype.updateViewablePoints = function(points){
 
 // ISSUE: multiple mention of a partner in the list cause multiple deductions to occur
 User.prototype.deductTransaction = function(deductionAmount){
+    fullDeductionAmount = deductionAmount;
     if(this.viewablePoints < deductionAmount){
         //TODO, throw error
         return -1;
@@ -52,24 +77,23 @@ User.prototype.deductTransaction = function(deductionAmount){
         let curPartnerPoints = this.partnerPoints[partner]
         let pointDiff = curPartnerPoints - deductionAmount;
 
-        // if as many points as transaction, sub trans amount from both
-        if(this.partnerPoints[partner] >= pointTrans){ // need to account for when deduction amount runs out
+        if(this.partnerPoints[partner] >= pointTrans){
             if(deductionAmount > pointTrans){
                 deductionAmount -= pointTrans;
-                addOrSetDict(partnerPoints, partner, -pointTrans);
+                addOrSetDict(this.partnerPoints, partner, -pointTrans);
                 addOrSetDict(partnerDeductions, partner, pointTrans);
             } else {
-                addOrSetDict(partnerPoints, partner, -deductionAmount);
+                addOrSetDict(this.partnerPoints, partner, -deductionAmount);
                 addOrSetDict(partnerDeductions, partner, deductionAmount);
                 deductionAmount = 0;
             }
         } else {
             if(deductionAmount > this.partnerPoints[partner]){
                 deductionAmount -= this.partnerPoints[partner];
-                addOrSetDict(partnerPoints, partner, -this.partnerPoints[partner])
+                addOrSetDict(this.partnerPoints, partner, -this.partnerPoints[partner])
                 addOrSetDict(partnerDeductions, partner, this.partnerPoints[partner]);
             } else {
-                addOrSetDict(partnerPoints, partner, -deductionAmount);
+                addOrSetDict(this.partnerPoints, partner, -deductionAmount);
                 addOrSetDict(partnerDeductions, partner, deductionAmount);
                 deductionAmount = 0;
             }
@@ -77,12 +101,21 @@ User.prototype.deductTransaction = function(deductionAmount){
         this.activePointsHistory.shift()
     }
     if (deductionAmount === 0) {
+        this.viewablePoints -= fullDeductionAmount;
         return partnerDeductions;
     } else {
         return -1;
     }
 
 
+}
+
+User.prototype.getActivePointsHistory = function(){
+    str = "";
+    for(let i=0; i < this.activePointsHistory.length; i++){
+        str += this.activePointsHistory[i].partner + ", " + this.activePointsHistory[i].points + ", " + this.activePointsHistory[i].time + "\n";
+    }
+    return str;
 }
 
 User.prototype.getPartnerPoints = function(){
